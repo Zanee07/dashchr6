@@ -219,7 +219,18 @@ function bloquearFuncionalidades() {
 // 🔗 GERENCIAMENTO DE LINKS RASTREADOS
 async function inicializarLinksRastreados() {
   try {
-    // Busca links existentes do cliente
+    console.log('🚀 Inicializando links rastreados...');
+    console.log('🔍 Client ID:', CLIENT_ID);
+
+    // DEBUG: Busca TODOS os links do cliente (sem filtro de ativo)
+    const { data: todosLinks, error: debugError } = await supabase
+      .from('links_rastreados')
+      .select('*')
+      .eq('client_id', CLIENT_ID);
+
+    console.log('🔍 DEBUG - TODOS os links no banco para cliente6:', todosLinks);
+
+    // Busca links existentes do cliente (apenas ativos)
     const { data: links, error: linksError } = await supabase
       .from('links_rastreados')
       .select('*')
@@ -227,26 +238,80 @@ async function inicializarLinksRastreados() {
       .eq('ativo', true)
       .order('ordem', { ascending: true });
 
-    if (linksError) throw linksError;
+    if (linksError) {
+      console.error('❌ Erro ao buscar links do banco:', linksError);
+      throw linksError;
+    }
 
-    // Se não tem links, cria os 6 padrões (PLANO PRO)
+    console.log('📦 Links ativos encontrados:', links);
+
+    // Se não tem links ativos, verifica se existem links desativados
     if (!links || links.length === 0) {
-      const linksDefault = [
-        { id: 'link1', client_id: CLIENT_ID, nome: 'Link 1', url_destino: '', icone: '📱', ordem: 1, ativo: true },
-        { id: 'link2', client_id: CLIENT_ID, nome: 'Link 2', url_destino: '', icone: '🛒', ordem: 2, ativo: true },
-        { id: 'link3', client_id: CLIENT_ID, nome: 'Link 3', url_destino: '', icone: '🔗', ordem: 3, ativo: true },
-        { id: 'link4', client_id: CLIENT_ID, nome: 'Link 4', url_destino: '', icone: '🎯', ordem: 4, ativo: true },
-        { id: 'link5', client_id: CLIENT_ID, nome: 'Link 5', url_destino: '', icone: '💎', ordem: 5, ativo: true },
-        { id: 'link6', client_id: CLIENT_ID, nome: 'Link 6', url_destino: '', icone: '⭐', ordem: 6, ativo: true }
-      ];
+      // Se existem links no banco (mas estão desativados), ativa eles
+      if (todosLinks && todosLinks.length > 0) {
+        console.log('⚠️ Links existem mas estão desativados. Ativando...');
 
-      const { error: insertError } = await supabase
-        .from('links_rastreados')
-        .insert(linksDefault);
+        for (const link of todosLinks) {
+          await supabase
+            .from('links_rastreados')
+            .update({ ativo: true })
+            .eq('id', link.id)
+            .eq('client_id', CLIENT_ID);
+        }
 
-      if (insertError) throw insertError;
+        // Recarrega os links
+        const { data: reloaded } = await supabase
+          .from('links_rastreados')
+          .select('*')
+          .eq('client_id', CLIENT_ID)
+          .eq('ativo', true)
+          .order('ordem', { ascending: true });
 
-      linksRastreados = linksDefault;
+        linksRastreados = reloaded || [];
+        console.log('✅ Links ativados:', linksRastreados);
+      } else {
+        // Não existem links, cria os padrões
+        console.log('📝 Criando links padrão...');
+        const linksDefault = [
+          { id: `${CLIENT_ID}_link1`, client_id: CLIENT_ID, nome: 'Link 1', url_destino: '', icone: '📱', ordem: 1, ativo: true },
+          { id: `${CLIENT_ID}_link2`, client_id: CLIENT_ID, nome: 'Link 2', url_destino: '', icone: '🛒', ordem: 2, ativo: true },
+          { id: `${CLIENT_ID}_link3`, client_id: CLIENT_ID, nome: 'Link 3', url_destino: '', icone: '🔗', ordem: 3, ativo: true },
+          { id: `${CLIENT_ID}_link4`, client_id: CLIENT_ID, nome: 'Link 4', url_destino: '', icone: '🎯', ordem: 4, ativo: true },
+          { id: `${CLIENT_ID}_link5`, client_id: CLIENT_ID, nome: 'Link 5', url_destino: '', icone: '💎', ordem: 5, ativo: true },
+          { id: `${CLIENT_ID}_link6`, client_id: CLIENT_ID, nome: 'Link 6', url_destino: '', icone: '⭐', ordem: 6, ativo: true }
+        ];
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('links_rastreados')
+          .insert(linksDefault)
+          .select();
+
+        if (insertError) {
+          console.error('❌ Erro ao criar links padrão:', insertError);
+
+          // Se erro for de chave duplicada, busca os links existentes
+          if (insertError.code === '23505') {
+            console.log('⚠️ Links já existem no banco, buscando...');
+            const { data: existingLinks } = await supabase
+              .from('links_rastreados')
+              .select('*')
+              .eq('client_id', CLIENT_ID)
+              .order('ordem', { ascending: true });
+
+            if (existingLinks && existingLinks.length > 0) {
+              linksRastreados = existingLinks;
+              console.log('✅ Links existentes carregados:', linksRastreados);
+            } else {
+              throw insertError;
+            }
+          } else {
+            throw insertError;
+          }
+        } else {
+          console.log('✅ Links padrão criados:', inserted);
+          linksRastreados = inserted || linksDefault;
+        }
+      }
     } else {
       linksRastreados = links;
     }
@@ -273,7 +338,7 @@ async function inicializarLinksRastreados() {
         await supabase
           .from('links_rastreados')
           .update({ nome: update.nome, updated_at: new Date() })
-          .eq('id', update.id)
+          .eq('id', `${CLIENT_ID}_${update.id}`)
           .eq('client_id', CLIENT_ID);
       }
 
@@ -298,7 +363,9 @@ async function inicializarLinksRastreados() {
 
 function atualizarNomesFiltros() {
   linksRastreados.forEach(link => {
-    const filterTextElement = document.getElementById(`filter-${link.id}-text`);
+    // Extrai o código do link (ex: "cliente6_link1" -> "link1")
+    const linkCode = link.id.split('_').pop();
+    const filterTextElement = document.getElementById(`filter-${linkCode}-text`);
     if (filterTextElement) {
       filterTextElement.textContent = link.nome;
     }
@@ -338,22 +405,67 @@ async function salvarUrlLink(linkId) {
   }
 
   try {
-    // Atualiza no banco de dados (permite null/vazio)
-    const { error } = await supabase
+    console.log('🔍 Array linksRastreados:', linksRastreados);
+    console.log('🔍 Procurando link com linkId:', linkId);
+
+    // Se o array estiver vazio, tenta buscar do banco
+    if (!linksRastreados || linksRastreados.length === 0) {
+      console.log('⚠️ Array vazio, buscando links do banco...');
+      const { data: links } = await supabase
+        .from('links_rastreados')
+        .select('*')
+        .eq('client_id', CLIENT_ID)
+        .eq('ativo', true)
+        .order('ordem', { ascending: true });
+
+      if (links && links.length > 0) {
+        linksRastreados = links;
+        console.log('✅ Links carregados do banco:', linksRastreados);
+      }
+    }
+
+    // Encontra o link real no array (com ID completo: cliente6_link1)
+    const linkReal = linksRastreados.find(l => {
+      const linkCode = l.id.split('_').pop();
+      console.log(`  - Comparando ${linkCode} === ${linkId}? ${linkCode === linkId}`);
+      return linkCode === linkId;
+    });
+
+    if (!linkReal) {
+      console.error(`❌ Link ${linkId} não encontrado no array local`);
+      console.error(`❌ Links disponíveis:`, linksRastreados.map(l => ({ id: l.id, extracted: l.id.split('_').pop() })));
+      mostrarAlerta('❌ Link não encontrado! Recarregue a página.', 'error');
+      return;
+    }
+
+    console.log(`💾 Salvando URL para ${linkId} (ID real: ${linkReal.id}): "${urlDestino}"`);
+    console.log(`🔍 Client ID: ${CLIENT_ID}`);
+
+    // Atualiza no banco de dados (usa string vazia se não tiver URL)
+    const { data, error } = await supabase
       .from('links_rastreados')
       .update({
-        url_destino: urlDestino || null,
+        url_destino: urlDestino || '',
         updated_at: new Date()
       })
-      .eq('id', linkId)
-      .eq('client_id', CLIENT_ID);
+      .eq('id', linkReal.id)
+      .eq('client_id', CLIENT_ID)
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro ao atualizar no banco:', error);
+      throw error;
+    }
+
+    console.log('✅ Resposta do banco:', data);
 
     // Atualiza o array local
-    const linkIndex = linksRastreados.findIndex(l => l.id === linkId);
+    const linkIndex = linksRastreados.findIndex(l => l.id === linkReal.id);
     if (linkIndex !== -1) {
-      linksRastreados[linkIndex].url_destino = urlDestino || null;
+      linksRastreados[linkIndex].url_destino = urlDestino || '';
+      console.log(`✅ Array local atualizado. Link ${linkId} agora tem url_destino: "${linksRastreados[linkIndex].url_destino}"`);
+    } else {
+      console.warn(`⚠️ Link ${linkId} não encontrado no array local`);
     }
 
     if (urlDestino) {
@@ -387,9 +499,17 @@ async function salvarUrlLink(linkId) {
 
 // 📥 FUNÇÃO PARA CARREGAR URLs SALVAS DO BANCO
 async function carregarUrlsSalvas() {
+  console.log('🔍 Carregando URLs salvas. Links disponíveis:', linksRastreados);
+
   linksRastreados.forEach(link => {
-    if (link.url_destino) {
-      // Mapeia linkId para inputId
+    console.log(`📝 Processando link ${link.id}: url_destino = "${link.url_destino}"`);
+
+    // Extrai o código do link (ex: "cliente6_link1" -> "link1")
+    const linkCode = link.id.split('_').pop();
+
+    // Verifica se url_destino existe e não é string vazia
+    if (link.url_destino && link.url_destino.trim() !== '') {
+      // Mapeia linkCode para inputId
       const inputIds = {
         'link1': 'base-url',
         'link2': 'checkout-url',
@@ -399,10 +519,11 @@ async function carregarUrlsSalvas() {
         'link6': 'link6-url'
       };
 
-      const inputId = inputIds[link.id];
+      const inputId = inputIds[linkCode];
       if (inputId) {
         const inputElement = document.getElementById(inputId);
         if (inputElement) {
+          console.log(`✅ Carregando URL para ${linkCode} (ID: ${link.id}): ${link.url_destino}`);
           inputElement.value = link.url_destino;
 
           // Dispara o evento de input para atualizar os links
@@ -410,9 +531,13 @@ async function carregarUrlsSalvas() {
           inputElement.dispatchEvent(event);
 
           // Mostra indicadores de URL salva
-          mostrarIndicadorUrlSalva(link.id);
+          mostrarIndicadorUrlSalva(linkCode);
+        } else {
+          console.warn(`⚠️ Input element não encontrado para ${inputId}`);
         }
       }
+    } else {
+      console.log(`⏭️ Link ${linkCode} sem URL ou URL vazia`);
     }
   });
 }
@@ -1158,13 +1283,13 @@ async function editarNomeSecaoCheckout(event) {
       const { error } = await supabase
         .from('links_rastreados')
         .update({ nome: novoTexto, updated_at: new Date() })
-        .eq('id', 'link2')
+        .eq('id', `${CLIENT_ID}_link2`)
         .eq('client_id', CLIENT_ID);
 
       if (error) throw error;
 
       // Atualiza o array local
-      const linkIndex = linksRastreados.findIndex(l => l.id === 'link2');
+      const linkIndex = linksRastreados.findIndex(l => l.id === `${CLIENT_ID}_link2`);
       if (linkIndex !== -1) {
         linksRastreados[linkIndex].nome = novoTexto;
       }
@@ -1276,13 +1401,13 @@ async function editarNomeSecao(event) {
       const { error } = await supabase
         .from('links_rastreados')
         .update({ nome: novoTexto, updated_at: new Date() })
-        .eq('id', 'link1')
+        .eq('id', `${CLIENT_ID}_link1`)
         .eq('client_id', CLIENT_ID);
 
       if (error) throw error;
 
       // Atualiza o array local
-      const linkIndex = linksRastreados.findIndex(l => l.id === 'link1');
+      const linkIndex = linksRastreados.findIndex(l => l.id === `${CLIENT_ID}_link1`);
       if (linkIndex !== -1) {
         linksRastreados[linkIndex].nome = novoTexto;
       }
@@ -1392,13 +1517,13 @@ async function editarNomeSecaoCustom(event) {
       const { error } = await supabase
         .from('links_rastreados')
         .update({ nome: novoTexto, updated_at: new Date() })
-        .eq('id', 'link3')
+        .eq('id', `${CLIENT_ID}_link3`)
         .eq('client_id', CLIENT_ID);
 
       if (error) throw error;
 
       // Atualiza o array local
-      const linkIndex = linksRastreados.findIndex(l => l.id === 'link3');
+      const linkIndex = linksRastreados.findIndex(l => l.id === `${CLIENT_ID}_link3`);
       if (linkIndex !== -1) {
         linksRastreados[linkIndex].nome = novoTexto;
       }
@@ -1991,12 +2116,12 @@ async function editarNomeSecaoLink4(event) {
       const { error } = await supabase
         .from('links_rastreados')
         .update({ nome: novoTexto, updated_at: new Date() })
-        .eq('id', 'link4')
+        .eq('id', `${CLIENT_ID}_link4`)
         .eq('client_id', CLIENT_ID);
 
       if (error) throw error;
 
-      const linkIndex = linksRastreados.findIndex(l => l.id === 'link4');
+      const linkIndex = linksRastreados.findIndex(l => l.id === `${CLIENT_ID}_link4`);
       if (linkIndex !== -1) {
         linksRastreados[linkIndex].nome = novoTexto;
       }
@@ -2147,12 +2272,12 @@ async function editarNomeSecaoLink5(event) {
       const { error } = await supabase
         .from('links_rastreados')
         .update({ nome: novoTexto, updated_at: new Date() })
-        .eq('id', 'link5')
+        .eq('id', `${CLIENT_ID}_link5`)
         .eq('client_id', CLIENT_ID);
 
       if (error) throw error;
 
-      const linkIndex = linksRastreados.findIndex(l => l.id === 'link5');
+      const linkIndex = linksRastreados.findIndex(l => l.id === `${CLIENT_ID}_link5`);
       if (linkIndex !== -1) {
         linksRastreados[linkIndex].nome = novoTexto;
       }
@@ -2303,12 +2428,12 @@ async function editarNomeSecaoLink6(event) {
       const { error } = await supabase
         .from('links_rastreados')
         .update({ nome: novoTexto, updated_at: new Date() })
-        .eq('id', 'link6')
+        .eq('id', `${CLIENT_ID}_link6`)
         .eq('client_id', CLIENT_ID);
 
       if (error) throw error;
 
-      const linkIndex = linksRastreados.findIndex(l => l.id === 'link6');
+      const linkIndex = linksRastreados.findIndex(l => l.id === `${CLIENT_ID}_link6`);
       if (linkIndex !== -1) {
         linksRastreados[linkIndex].nome = novoTexto;
       }

@@ -117,7 +117,8 @@ const CODIGOS_ORIGEM = {
   'tw': 'whatsapp',
   'tp': 'trafego-pago',
   'tx': 'twitter',
-  'th': 'threads'
+  'th': 'threads',
+  'gmb': 'gmb'
 };
 
 // 🚀 FUNÇÕES DO PLANO PRO
@@ -1660,7 +1661,7 @@ function gerarCodigoTracking(linkId = 'link1') {
   const CLIENT_ID = '${CLIENT_ID}';
   const LIMITE_CLIQUES = 10000;
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const CODIGOS_ORIGEM = { 'ti': 'instagram', 'tt': 'tiktok', 'ty': 'youtube', 'tl': 'linkedin', 'tw': 'whatsapp', 'tp': 'trafego-pago', 'tx': 'twitter', 'th': 'threads' };
+  const CODIGOS_ORIGEM = { 'ti': 'instagram', 'tt': 'tiktok', 'ty': 'youtube', 'tl': 'linkedin', 'tw': 'whatsapp', 'tp': 'trafego-pago', 'tx': 'twitter', 'th': 'threads', 'gmb': 'gmb' };
   let origemAtual = null;
   let linkIdAtual = null;
   let limiteAtingido = false;

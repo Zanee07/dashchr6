@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metrickfy - Dashboard</title>
+  
+  <!-- Supabase e Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+  
+</head>
+<body>
+  <!-- Painel de Login -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-container">
+      <div class="login-header">
+        <h1>Metrickfy - Dashboard</h1>
+        <p>Acesso restrito</p>
+      </div>
+      <form id="login-form" class="login-form">
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            class="login-input"
+            placeholder="Digite seu email"
+            autocomplete="email"
+          />
+        </div>
+        <div class="input-group">
+          <label for="password">Senha</label>
+          <input
+            type="password"
+            id="password"
+            class="login-input"
+            placeholder="Digite a senha"
+            autocomplete="current-password"
+          />
+        </div>
+        <button type="submit" class="login-button">
+          Entrar
+        </button>
+        <div id="login-error" class="login-error" style="display: none;">
+          Email ou senha incorretos. Tente novamente.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="container" id="dashboard" style="display: none;">
+    <div class="header">
+      <div style="text-align: right; margin-bottom: 15px;">
+        <button onclick="logout()" class="logout-button">Sair</button>
+      </div>
+      <h1>🎯 Pare de Adivinhar. Comece a Rastrear Seus Resultados de Forma Profissional.</h1>
+      <p>Veja exatamente quais canais geram cliques, quando sua audiência está ativa e de onde cada acesso vem</p>
+      <div class="client-badge">
+        🚀 <span class="client-name">Plano Pro</span>
+      </div>
+      <div class="plan-counter" id="plan-counter">
+        📊 Plano Pro: <span id="clicks-restantes" class="clicks-count">10000</span> cliques restantes
+      </div>
+    </div>
+
+    <div id="loading" class="loading">
+      Carregando dados... ⏳
+    </div>
+
+    <div id="content" style="display: none;">
+      
+      <!-- Filtros de Período -->
+      <div class="filters-section">
+        <h3>📅 Filtrar por Período</h3>
+        <div class="filter-buttons">
+          <button class="filter-btn" onclick="filtrarPeriodo('hoje')">📆 Hoje</button>
+          <button class="filter-btn" onclick="filtrarPeriodo('ontem')">📅 Ontem</button>
+          <button class="filter-btn" onclick="filtrarPeriodo('7dias')">📊 Últimos 7 dias</button>
+          <button class="filter-btn" onclick="filtrarPeriodo('30dias')">📈 Últimos 30 dias</button>
+          <button class="filter-btn active" onclick="filtrarPeriodo('total')">🚀 Todo o Período</button>
+        </div>
+      </div>
+
+      <!-- Filtros de Links Personalizados -->
+      <div class="filters-section">
+        <h3>🔗 Filtrar por Links Personalizados</h3>
+        <div class="filter-buttons">
+          <button class="filter-btn-link" id="filter-link1" onclick="filtrarPorLink('link1')">
+            <span id="filter-link1-text">Link 1</span>
+          </button>
+          <button class="filter-btn-link" id="filter-link2" onclick="filtrarPorLink('link2')">
+            <span id="filter-link2-text">Link 2</span>
+          </button>
+          <button class="filter-btn-link" id="filter-link3" onclick="filtrarPorLink('link3')">
+            <span id="filter-link3-text">Link 3</span>
+          </button>
+          <button class="filter-btn-link" id="filter-link4" onclick="filtrarPorLink('link4')">
+            <span id="filter-link4-text">Link 4</span>
+          </button>
+          <button class="filter-btn-link" id="filter-link5" onclick="filtrarPorLink('link5')">
+            <span id="filter-link5-text">Link 5</span>
+          </button>
+          <button class="filter-btn-link" id="filter-link6" onclick="filtrarPorLink('link6')">
+            <span id="filter-link6-text">Link 6</span>
+          </button>
+          <button class="filter-btn-link active" id="filter-all-links" onclick="filtrarPorLink('todos')">
+            🚀 Todos os Links
+          </button>
+        </div>
+      </div>
+
+ <!-- Cards de Origens -->
+<div class="stats-grid">
+  <div class="stat-card instagram">
+    <div class="stat-header">
+      <div class="stat-title">Instagram</div>
+      <div class="stat-icon">📸</div>
+    </div>
+    <div class="stat-value" id="clicks-instagram">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-instagram">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-instagram">0</span> (<span id="valor-instagram">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-instagram">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-ig">Todo o período</div>
+  </div>
+
+  <div class="stat-card tiktok">
+    <div class="stat-header">
+      <div class="stat-title">TikTok</div>
+      <div class="stat-icon">🎵</div>
+    </div>
+    <div class="stat-value" id="clicks-tiktok">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-tiktok">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-tiktok">0</span> (<span id="valor-tiktok">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-tiktok">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-tt">Todo o período</div>
+  </div>
+
+  <div class="stat-card youtube">
+    <div class="stat-header">
+      <div class="stat-title">YouTube</div>
+      <div class="stat-icon">▶️</div>
+    </div>
+    <div class="stat-value" id="clicks-youtube">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-youtube">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-youtube">0</span> (<span id="valor-youtube">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-youtube">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-yt">Todo o período</div>
+  </div>
+
+  <div class="stat-card linkedin">
+    <div class="stat-header">
+      <div class="stat-title">LinkedIn</div>
+      <div class="stat-icon">💼</div>
+    </div>
+    <div class="stat-value" id="clicks-linkedin">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-linkedin">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-linkedin">0</span> (<span id="valor-linkedin">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-linkedin">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-li">Todo o período</div>
+  </div>
+
+  <div class="stat-card whatsapp">
+    <div class="stat-header">
+      <div class="stat-title">WhatsApp</div>
+      <div class="stat-icon">💬</div>
+    </div>
+    <div class="stat-value" id="clicks-whatsapp">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-whatsapp">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-whatsapp">0</span> (<span id="valor-whatsapp">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-whatsapp">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-wa">Todo o período</div>
+  </div>
+
+  <div class="stat-card trafego-pago">
+    <div class="stat-header">
+      <div class="stat-title">Tráfego Pago</div>
+      <div class="stat-icon">💰</div>
+    </div>
+    <div class="stat-value" id="clicks-trafego-pago">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-trafego-pago">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-trafego-pago">0</span> (<span id="valor-trafego-pago">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-trafego-pago">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-tp">Todo o período</div>
+  </div>
+
+  <div class="stat-card twitter">
+    <div class="stat-header">
+      <div class="stat-title">X (Twitter)</div>
+      <div class="stat-icon">𝕏</div>
+    </div>
+    <div class="stat-value" id="clicks-twitter">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-twitter">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-twitter">0</span> (<span id="valor-twitter">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-twitter">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-tx">Todo o período</div>
+  </div>
+
+  <div class="stat-card threads">
+    <div class="stat-header">
+      <div class="stat-title">Threads</div>
+      <div class="stat-icon">🧵</div>
+    </div>
+    <div class="stat-value" id="clicks-threads">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-threads">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-threads">0</span> (<span id="valor-threads">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-threads">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-th">Todo o período</div>
+  </div>
+
+  <div class="stat-card gmb">
+    <div class="stat-header">
+      <div class="stat-title">Google Meu Negócio</div>
+      <div class="stat-icon">🏢</div>
+    </div>
+    <div class="stat-value" id="clicks-gmb">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-gmb">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-gmb">0</span> (<span id="valor-gmb">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-gmb">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-gmb">Todo o período</div>
+  </div>
+
+  <div class="stat-card total">
+    <div class="stat-header">
+      <div class="stat-title">Total</div>
+      <div class="stat-icon">🚀</div>
+    </div>
+    <div class="stat-value" id="clicks-total">0</div>
+    <div class="stat-label">cliques no período</div>
+    <div class="stat-divider"></div>
+    <div class="stat-checkout">
+      🛒 Cliques p/ Checkout: <span id="checkout-total">0</span>
+    </div>
+    <div class="stat-sales">
+      💰 Vendas: <span id="sales-total">0</span> (<span id="valor-total">R$ 0,00</span>)
+    </div>
+    <div class="stat-conversion">
+      <span class="conversion-badge" id="conversion-total">📊 Taxa: 0%</span>
+    </div>
+    <div class="stat-period" id="period-label-total">Todo o período</div>
+  </div>
+</div>
+
+      <!-- Resumo Geral -->
+      <div class="comparison-section">
+        <div class="section-header-toggle" onclick="toggleResumoSection()">
+          <h3>📊 Resumo Geral - Todos os Períodos</h3>
+          <button class="toggle-btn" id="resumo-toggle-btn">▼</button>
+        </div>
+        <div id="resumo-content" class="collapsible-content">
+          <div class="comparison-grid">
+            <div class="comparison-card">
+              <div class="label">Hoje</div>
+              <div class="value" id="total-hoje">0</div>
+            </div>
+            <div class="comparison-card">
+              <div class="label">Ontem</div>
+              <div class="value" id="total-ontem">0</div>
+            </div>
+            <div class="comparison-card">
+              <div class="label">Últimos 7 dias</div>
+              <div class="value" id="total-7dias">0</div>
+            </div>
+            <div class="comparison-card">
+              <div class="label">Últimos 30 dias</div>
+              <div class="value" id="total-30dias">0</div>
+            </div>
+            <div class="comparison-card">
+              <div class="label">Total Geral</div>
+              <div class="value" id="total-geral">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico de Horários de Pico -->
+      <div class="chart-section">
+        <h3>⏰ Horários de Pico - Quando as pessoas mais clicam</h3>
+        <div class="chart-container">
+          <canvas id="horariosChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Geolocalização -->
+      <div class="geo-section" id="geo-section">
+        <h3>🌍 De Onde Vêm os Cliques</h3>
+        <div class="geo-list" id="geo-list">
+          <!-- Preenchido via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Links de Tracking (Site) -->
+      <div class="links-section">
+        <div class="section-header-toggle">
+          <h2>
+            <span id="links-section-title" ondblclick="editarNomeSecao()">📱 Meus Links Personalizados</span>
+            <button class="edit-title-btn" onclick="editarNomeSecao(event)" title="Editar nome da seção">✏️</button>
+          </h2>
+          <button class="toggle-btn collapsed" id="links-toggle-btn" onclick="toggleLinksSection()">▶</button>
+        </div>
+        <div id="links-content" class="collapsible-content collapsed">
+          <p style="color: #666; margin-bottom: 15px;">Crie seus próprios links rastreados personalizados:</p>
+
+        <!-- Campo para inserir URL base -->
+        <div class="url-input-container">
+          <label for="base-url">🌐 Insira a URL do seu site ou link: <span id="url-salva-link1" style="color: #10b981; font-size: 12px; display: none;">✓ Salva</span></label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input
+              type="text"
+              id="base-url"
+              class="url-input"
+              placeholder="https://exemplo.com"
+              oninput="atualizarLinks()"
+              style="flex: 1;"
+            />
+            <button class="button" onclick="salvarUrlLink('link1')" title="Salvar URL">
+              💾 Salvar
+            </button>
+            <button class="button" id="btn-editar-url-link1" onclick="editarUrlLink('link1')" title="Editar URL" style="display: none;">
+              ✏️ Editar
+            </button>
+            <button class="button" id="btn-gerar-codigo" onclick="gerarCodigoTracking('link1')" style="display: none;">
+              📝 Gerar Código
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal do Código de Tracking -->
+        <div id="modal-codigo" class="modal-codigo" style="display: none;">
+          <div class="modal-codigo-content">
+            <div class="modal-header">
+              <h3>📝 Código de Tracking Personalizado</h3>
+              <button class="modal-close" onclick="fecharModalCodigo()">✕</button>
+            </div>
+            <p class="modal-instrucao">
+              Copie o código abaixo e cole <strong>antes da tag &lt;/body&gt;</strong> da sua página de vendas:
+            </p>
+            <div class="codigo-container">
+              <pre id="codigo-tracking"></pre>
+            </div>
+            <div class="modal-buttons">
+              <button class="button" onclick="copiarCodigoTracking()">
+                📋 Copiar Código
+              </button>
+              <button class="button" onclick="baixarCodigoTracking()">
+                💾 Baixar Arquivo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="link-item">
+          <strong>📸 Instagram:</strong>
+          <code id="link-instagram">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('instagram')">📋 Copiar Link</button>
+        </div>
+
+        <div class="link-item">
+          <strong>🎵 TikTok:</strong>
+          <code id="link-tiktok">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('tiktok')">📋 Copiar Link</button>
+        </div>
+
+        <div class="link-item">
+          <strong>▶️ YouTube:</strong>
+          <code id="link-youtube">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('youtube')">📋 Copiar Link</button>
+        </div>
+
+        <div class="link-item">
+          <strong>💼 LinkedIn:</strong>
+          <code id="link-linkedin">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('linkedin')">📋 Copiar Link</button>
+        </div>
+
+        <div class="link-item">
+          <strong>💬 WhatsApp Status:</strong>
+          <code id="link-whatsapp">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('whatsapp')">📋 Copiar Link</button>
+        </div>
+
+        <div class="link-item">
+          <strong>💰 Tráfego Pago:</strong>
+          <code id="link-trafego-pago">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('trafego-pago')">📋 Copiar Link</button>
+        </div>
+
+        <div class="link-item">
+          <strong>𝕏 X (Twitter):</strong>
+          <code id="link-twitter">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('twitter')">📋 Copiar Link</button>
+        </div>
+
+        <div class="link-item">
+          <strong>🧵 Threads:</strong>
+          <code id="link-threads">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('threads')">📋 Copiar Link</button>
+        </div>
+
+        <div class="link-item">
+          <strong>🏢 Google Meu Negócio:</strong>
+          <code id="link-gmb">Digite sua URL acima</code>
+          <button class="button" onclick="copiarLink('gmb')">📋 Copiar Link</button>
+        </div>
+        </div>
+      </div>
+
+      <!-- Links de Checkout (Kiwify) -->
+      <div class="links-section">
+        <div class="section-header-toggle">
+          <h2>
+            <span id="checkout-section-title" ondblclick="editarNomeSecaoCheckout()">📱 Meus Links Personalizados</span>
+            <button class="edit-title-btn" onclick="editarNomeSecaoCheckout(event)" title="Editar nome da seção">✏️</button>
+          </h2>
+          <button class="toggle-btn collapsed" id="checkout-toggle-btn" onclick="toggleCheckoutSection()">▶</button>
+        </div>
+        <div id="checkout-content" class="collapsible-content collapsed">
+          <p style="color: #666; margin-bottom: 15px;">Crie seus próprios links rastreados personalizados:</p>
+
+          <!-- Campo para inserir URL base do checkout -->
+          <div class="url-input-container">
+            <label for="checkout-url">🌐 Insira a URL do seu checkout ou link: <span id="url-salva-link2" style="color: #10b981; font-size: 12px; display: none;">✓ Salva</span></label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input
+                type="text"
+                id="checkout-url"
+                class="url-input"
+                placeholder="https://pay.kiwify.com.br/SEU_CODIGO"
+                oninput="atualizarLinksCheckout()"
+                style="flex: 1;"
+              />
+              <button class="button" onclick="salvarUrlLink('link2')" title="Salvar URL">
+                💾 Salvar
+              </button>
+              <button class="button" id="btn-editar-url-link2" onclick="editarUrlLink('link2')" title="Editar URL" style="display: none;">
+                ✏️ Editar
+              </button>
+              <button class="button" id="btn-gerar-codigo-link2" onclick="gerarCodigoTracking('link2')" style="display: none;">
+                📝 Gerar Código
+              </button>
+            </div>
+          </div>
+
+          <div class="link-item">
+            <strong>📸 Instagram:</strong>
+            <code id="link-checkout-instagram">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('instagram')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🎵 TikTok:</strong>
+            <code id="link-checkout-tiktok">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('tiktok')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>▶️ YouTube:</strong>
+            <code id="link-checkout-youtube">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('youtube')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💼 LinkedIn:</strong>
+            <code id="link-checkout-linkedin">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('linkedin')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💬 WhatsApp:</strong>
+            <code id="link-checkout-whatsapp">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('whatsapp')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💰 Tráfego Pago:</strong>
+            <code id="link-checkout-trafego-pago">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('trafego-pago')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>𝕏 X (Twitter):</strong>
+            <code id="link-checkout-twitter">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('twitter')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🧵 Threads:</strong>
+            <code id="link-checkout-threads">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('threads')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🏢 Google Meu Negócio:</strong>
+            <code id="link-checkout-gmb">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCheckout('gmb')">📋 Copiar Link</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nova Seção Personalizável -->
+      <div class="links-section">
+        <div class="section-header-toggle">
+          <h2>
+            <span id="custom-section-title" ondblclick="editarNomeSecaoCustom()">📱 Meus Links Personalizados</span>
+            <button class="edit-title-btn" onclick="editarNomeSecaoCustom(event)" title="Editar nome da seção">✏️</button>
+          </h2>
+          <button class="toggle-btn collapsed" id="custom-toggle-btn" onclick="toggleCustomSection()">▶</button>
+        </div>
+        <div id="custom-content" class="collapsible-content collapsed">
+          <p style="color: #666; margin-bottom: 15px;">Crie seus próprios links rastreados personalizados:</p>
+
+          <!-- Campo para inserir URL base personalizada -->
+          <div class="url-input-container">
+            <label for="custom-url">🌐 Insira a URL que deseja rastrear: <span id="url-salva-link3" style="color: #10b981; font-size: 12px; display: none;">✓ Salva</span></label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input
+                type="text"
+                id="custom-url"
+                class="url-input"
+                placeholder="https://seulink.com"
+                oninput="atualizarLinksCustom()"
+                style="flex: 1;"
+              />
+              <button class="button" onclick="salvarUrlLink('link3')" title="Salvar URL">
+                💾 Salvar
+              </button>
+              <button class="button" id="btn-editar-url-link3" onclick="editarUrlLink('link3')" title="Editar URL" style="display: none;">
+                ✏️ Editar
+              </button>
+              <button class="button" id="btn-gerar-codigo-link3" onclick="gerarCodigoTracking('link3')" style="display: none;">
+                📝 Gerar Código
+              </button>
+            </div>
+          </div>
+
+          <div class="link-item">
+            <strong>📸 Instagram:</strong>
+            <code id="link-custom-instagram">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('instagram')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🎵 TikTok:</strong>
+            <code id="link-custom-tiktok">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('tiktok')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>▶️ YouTube:</strong>
+            <code id="link-custom-youtube">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('youtube')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💼 LinkedIn:</strong>
+            <code id="link-custom-linkedin">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('linkedin')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💬 WhatsApp:</strong>
+            <code id="link-custom-whatsapp">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('whatsapp')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💰 Tráfego Pago:</strong>
+            <code id="link-custom-trafego-pago">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('trafego-pago')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>𝕏 X (Twitter):</strong>
+            <code id="link-custom-twitter">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('twitter')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🧵 Threads:</strong>
+            <code id="link-custom-threads">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('threads')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🏢 Google Meu Negócio:</strong>
+            <code id="link-custom-gmb">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkCustom('gmb')">📋 Copiar Link</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção Personalizável 4 -->
+      <div class="links-section">
+        <div class="section-header-toggle">
+          <h2>
+            <span id="link4-section-title" ondblclick="editarNomeSecaoLink4()">🎯 Link 4</span>
+            <button class="edit-title-btn" onclick="editarNomeSecaoLink4(event)" title="Editar nome da seção">✏️</button>
+          </h2>
+          <button class="toggle-btn collapsed" id="link4-toggle-btn" onclick="toggleLink4Section()">▶</button>
+        </div>
+        <div id="link4-content" class="collapsible-content collapsed">
+          <p style="color: #666; margin-bottom: 15px;">Crie seus próprios links rastreados personalizados:</p>
+
+          <!-- Campo para inserir URL base personalizada -->
+          <div class="url-input-container">
+            <label for="link4-url">🌐 Insira a URL que deseja rastrear: <span id="url-salva-link4" style="color: #10b981; font-size: 12px; display: none;">✓ Salva</span></label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input
+                type="text"
+                id="link4-url"
+                class="url-input"
+                placeholder="https://seulink.com"
+                oninput="atualizarLinksLink4()"
+                style="flex: 1;"
+              />
+              <button class="button" onclick="salvarUrlLink('link4')" title="Salvar URL">
+                💾 Salvar
+              </button>
+              <button class="button" id="btn-editar-url-link4" onclick="editarUrlLink('link4')" title="Editar URL" style="display: none;">
+                ✏️ Editar
+              </button>
+              <button class="button" id="btn-gerar-codigo-link4" onclick="gerarCodigoTracking('link4')" style="display: none;">
+                📝 Gerar Código
+              </button>
+            </div>
+          </div>
+
+          <div class="link-item">
+            <strong>📸 Instagram:</strong>
+            <code id="link-link4-instagram">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('instagram')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🎵 TikTok:</strong>
+            <code id="link-link4-tiktok">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('tiktok')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>▶️ YouTube:</strong>
+            <code id="link-link4-youtube">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('youtube')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💼 LinkedIn:</strong>
+            <code id="link-link4-linkedin">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('linkedin')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💬 WhatsApp:</strong>
+            <code id="link-link4-whatsapp">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('whatsapp')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💰 Tráfego Pago:</strong>
+            <code id="link-link4-trafego-pago">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('trafego-pago')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>𝕏 X (Twitter):</strong>
+            <code id="link-link4-twitter">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('twitter')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🧵 Threads:</strong>
+            <code id="link-link4-threads">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('threads')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🏢 Google Meu Negócio:</strong>
+            <code id="link-link4-gmb">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink4('gmb')">📋 Copiar Link</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção Personalizável 5 -->
+      <div class="links-section">
+        <div class="section-header-toggle">
+          <h2>
+            <span id="link5-section-title" ondblclick="editarNomeSecaoLink5()">💎 Link 5</span>
+            <button class="edit-title-btn" onclick="editarNomeSecaoLink5(event)" title="Editar nome da seção">✏️</button>
+          </h2>
+          <button class="toggle-btn collapsed" id="link5-toggle-btn" onclick="toggleLink5Section()">▶</button>
+        </div>
+        <div id="link5-content" class="collapsible-content collapsed">
+          <p style="color: #666; margin-bottom: 15px;">Crie seus próprios links rastreados personalizados:</p>
+
+          <!-- Campo para inserir URL base personalizada -->
+          <div class="url-input-container">
+            <label for="link5-url">🌐 Insira a URL que deseja rastrear: <span id="url-salva-link5" style="color: #10b981; font-size: 12px; display: none;">✓ Salva</span></label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input
+                type="text"
+                id="link5-url"
+                class="url-input"
+                placeholder="https://seulink.com"
+                oninput="atualizarLinksLink5()"
+                style="flex: 1;"
+              />
+              <button class="button" onclick="salvarUrlLink('link5')" title="Salvar URL">
+                💾 Salvar
+              </button>
+              <button class="button" id="btn-editar-url-link5" onclick="editarUrlLink('link5')" title="Editar URL" style="display: none;">
+                ✏️ Editar
+              </button>
+              <button class="button" id="btn-gerar-codigo-link5" onclick="gerarCodigoTracking('link5')" style="display: none;">
+                📝 Gerar Código
+              </button>
+            </div>
+          </div>
+
+          <div class="link-item">
+            <strong>📸 Instagram:</strong>
+            <code id="link-link5-instagram">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('instagram')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🎵 TikTok:</strong>
+            <code id="link-link5-tiktok">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('tiktok')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>▶️ YouTube:</strong>
+            <code id="link-link5-youtube">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('youtube')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💼 LinkedIn:</strong>
+            <code id="link-link5-linkedin">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('linkedin')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💬 WhatsApp:</strong>
+            <code id="link-link5-whatsapp">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('whatsapp')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💰 Tráfego Pago:</strong>
+            <code id="link-link5-trafego-pago">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('trafego-pago')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>𝕏 X (Twitter):</strong>
+            <code id="link-link5-twitter">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('twitter')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🧵 Threads:</strong>
+            <code id="link-link5-threads">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('threads')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🏢 Google Meu Negócio:</strong>
+            <code id="link-link5-gmb">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink5('gmb')">📋 Copiar Link</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seção Personalizável 6 -->
+      <div class="links-section">
+        <div class="section-header-toggle">
+          <h2>
+            <span id="link6-section-title" ondblclick="editarNomeSecaoLink6()">⭐ Link 6</span>
+            <button class="edit-title-btn" onclick="editarNomeSecaoLink6(event)" title="Editar nome da seção">✏️</button>
+          </h2>
+          <button class="toggle-btn collapsed" id="link6-toggle-btn" onclick="toggleLink6Section()">▶</button>
+        </div>
+        <div id="link6-content" class="collapsible-content collapsed">
+          <p style="color: #666; margin-bottom: 15px;">Crie seus próprios links rastreados personalizados:</p>
+
+          <!-- Campo para inserir URL base personalizada -->
+          <div class="url-input-container">
+            <label for="link6-url">🌐 Insira a URL que deseja rastrear: <span id="url-salva-link6" style="color: #10b981; font-size: 12px; display: none;">✓ Salva</span></label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input
+                type="text"
+                id="link6-url"
+                class="url-input"
+                placeholder="https://seulink.com"
+                oninput="atualizarLinksLink6()"
+                style="flex: 1;"
+              />
+              <button class="button" onclick="salvarUrlLink('link6')" title="Salvar URL">
+                💾 Salvar
+              </button>
+              <button class="button" id="btn-editar-url-link6" onclick="editarUrlLink('link6')" title="Editar URL" style="display: none;">
+                ✏️ Editar
+              </button>
+              <button class="button" id="btn-gerar-codigo-link6" onclick="gerarCodigoTracking('link6')" style="display: none;">
+                📝 Gerar Código
+              </button>
+            </div>
+          </div>
+
+          <div class="link-item">
+            <strong>📸 Instagram:</strong>
+            <code id="link-link6-instagram">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('instagram')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🎵 TikTok:</strong>
+            <code id="link-link6-tiktok">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('tiktok')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>▶️ YouTube:</strong>
+            <code id="link-link6-youtube">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('youtube')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💼 LinkedIn:</strong>
+            <code id="link-link6-linkedin">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('linkedin')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💬 WhatsApp:</strong>
+            <code id="link-link6-whatsapp">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('whatsapp')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>💰 Tráfego Pago:</strong>
+            <code id="link-link6-trafego-pago">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('trafego-pago')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>𝕏 X (Twitter):</strong>
+            <code id="link-link6-twitter">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('twitter')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🧵 Threads:</strong>
+            <code id="link-link6-threads">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('threads')">📋 Copiar Link</button>
+          </div>
+
+          <div class="link-item">
+            <strong>🏢 Google Meu Negócio:</strong>
+            <code id="link-link6-gmb">Digite sua URL acima</code>
+            <button class="button" onclick="copiarLinkLink6('gmb')">📋 Copiar Link</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botões de Ação -->
+      <div class="buttons-container">
+        <button class="button" onclick="atualizarStats()">🔄 Atualizar Dados</button>
+      </div>
+
+      <div class="refresh-info">
+        ⚡ Os dados atualizam automaticamente a cada 5 segundos
+      </div>
+
+      <div class="last-update" id="last-update">
+        Última atualização: carregando...
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup de Limite Atingido -->
+  <div id="upgrade-popup" class="upgrade-popup-overlay" style="display: none;">
+    <div class="upgrade-popup">
+      <button class="popup-close-btn" onclick="fecharPopupUpgrade()">✕</button>
+      <div class="popup-icon">🚀</div>
+      <h2>Limite de Cliques Atingido!</h2>
+      <p class="popup-message">
+        Você atingiu o limite de <strong>10.000 cliques</strong> do Plano Pro.<br>
+        Entre em contato com o suporte para aumentar seu limite ou renovar seu plano e continuar rastreando seus resultados!
+      </p>
+      <div class="popup-buttons">
+        <a href="https://wa.me/5547880479880?text=Olá!%20Atingi%20o%20limite%20do%20Plano%20Pro%20e%20gostaria%20de%20renovar"
+           target="_blank"
+           class="popup-btn whatsapp-btn">
+          💬 Chamar no WhatsApp
+        </a>
+      </div>
+      <p class="popup-footer">
+        📞 WhatsApp: (47) 8804-7980
+      </p>
+    </div>
+  </div>
+
+  <script src="js.js"></script>
+</body>
+</html>
